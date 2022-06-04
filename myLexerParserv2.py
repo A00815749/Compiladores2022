@@ -10,6 +10,7 @@
 from re import split
 import os
 import sys
+import PIL
 import ply.yacc as yacc
 from Semanticcube import Semanticcube
 from time import sleep
@@ -134,10 +135,59 @@ semantics = Semanticcube()
 #~~~~~~~IN PROGRESSS~~~~~~~~~~~
 
 
+def ERRORHANDLER(errortype,location = ""): # GET THE VARIOUS ERROR MESSAGES HANDLED
+    errormessage = ""
+    #I could match case here, but I dont want to change python versions midproject
+    if errortype == "funcrepetida":
+        errormessage = "FUNCION EXISTENTE REPETIDA"
+    elif errortype == "nombreusado":
+        errormessage = "ID DE VARIABLE Y/O PROGRAMA REPETIDA"
+    elif errortype == "invalidoperator":
+        errormessage = "OPERACION INVALIDA, MISMATCH DE TIPOS"
+    elif errortype == "varrepetida":
+        errormessage = "VARIABLE DECLARADA MULTIPLES VECES"
+    elif errortype == "tiposdif":
+        errormessage = "MISMATCH DE TIPOS"
+    elif errortype == "tiposhuh":
+        errormessage = "TIPO DE DATO NO ACEPTADO"
+    elif errortype == "notype":
+        errormessage = "VARIABLE SIN TIPO"
+    elif errortype == "noval":
+        errormessage = "VARIABLE SIN VALOR"
+    elif errortype == "notthere":
+        errormessage = "NO EXISTE LA VARIABLE QUE SE BUSCA "
+    elif errortype == "type error":
+        errormessage = "ERROR EN TIPO DE DATO CONSTANTE"
+    elif errortype == "INVALIDOP":
+        errormessage = "OPERACION INVALIDA"
+    elif errortype == "funcwithparamhuh":
+        errormessage = "FUNCION ESPERABA NO PARAMETROS"
+    elif errortype == "invalidnumparams":
+        errormessage = "FUNCION CON NUMERO DE PARAMETROS ERRONEO"
+    elif errortype == "dimshuh":
+        errormessage = "VARIABLE VECTOR SIN DIMENSIONES"
+    print("ERROR " + errormessage + "\n at ===> " + str(location))
+    sys.exit()
 
 
+def typechecker(type1,type2): # CHEKCIK IF OUR TYPES ARE ACTUALLY THE SAME, USED IN ASSIGNING, CYCLES AND LOOPS
+    if type1 != type2:
+        ERRORHANDLER("tiposdif",str(type1 + " ====== " + type2))
 
 
+def virtualaddrfetcher(val): #VIRTUAL ADDRESS FETCHER, CHECKING THE APPROPIATE SETS
+    global GLOBALvar_set,LOCALvar_set, CONSTANTSvar_set,TABLEof_functions
+    if val in LOCALvar_set: #IS IT IN THE LOCAL VARS?
+        return LOCALvar_set[val]['virtualaddress']
+    elif val in GLOBALvar_set: # IS IT IN THE GLOBAL VARS?
+        return GLOBALvar_set[val]['virtualaddress']
+    else: # ASSUMING CONSTANTS
+        if type(val) == int:
+            return CONSTANTSvar_set[int(val)]
+        if type(val) == float:
+            return CONSTANTSvar_set[float(val)]
+        if type(val) == str:
+            return CONSTANTSvar_set[str(val)]
 
 
 
@@ -409,6 +459,28 @@ def p_NEURALINITDIM(p): # MAKE THE STORED VARIABLE VECTOR HAVE AN ARRAYSENSOR SE
     '''
     ### LOGIC IN PROGRESS.....
 
+
+#DIMENSIONAL ACCESS HANDLER
+def p_IDARRAY(p):
+    '''
+    idarray : neuralinitarray exp verify RIGHTSQR
+            | empty
+    '''
+
+def p_NEURALINITARRAT(p):
+    '''
+    neuralinitarray : LEFTSQR
+    '''
+
+
+def p_VERIFY(p):
+    '''
+    verify : 
+    '''
+
+
+
+
 # TYPING OF VARIABLES SECTION 
 
 def p_TYPING(p):
@@ -593,3 +665,189 @@ def p_MULNUMEROS(p): # MULTIPLE CONSTANTS IN THE SPECIAL METHOD
     mulnumeros : COMMA specfuncnumbers
                 | empty
     '''
+
+
+######--------------------- ASSIGN LOGIC SECTION ------------------------------######
+# ID = 123 ; OR ID =12.3 OR ID = VAR OR ID = VAR[1] OR ID = FUNCTION(1,1) OR ID = 'C' 
+def p_ASSIGN(p):
+    '''
+    assign : neuralassign idarray neuralassign2 assignexp SEMICOLON
+    '''
+    global PilaO, Pilatypes, HASHofoperatorsinquads
+    if PilaO and Pilatypes : #NOT EMPTY, CHECK THE LAST 2 Operands
+        result = PilaO.pop()
+        righttype = Pilatypes.pop()
+        leftop = PilaO.pop()
+        leftype = Pilatypes.pop()
+        #Auxiliar typechecker cubo semantico
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],result,-1,leftop))
+
+def p_NEURALASSIGN(p):
+    '''
+    neuralassign : ID
+    '''
+    global PilaO,Pilatypes
+    p[0]=p[1] #SKIPPING
+    virtualaddr = 0 #FUNCION AUXILIAR PARA EL VIRTUALADDRES p[1]
+    PilaO.append(virtualaddr)
+    Pilatypes.append('placeholder') # FUNCION AUXILIAR PARA AGREGAR TIPO DE VALOR
+
+def p_NEURALASSIGN2(p):
+    '''
+    neuralassign2 : =
+    '''
+    global POper
+    POper.append(p[1]) # STORING THE EQUAL TOKEN
+
+def p_ASSIGNEXP(p):
+    '''
+    assignexp : exp
+    '''
+    p[0]=p[1] # SKIPPING TOKEN
+
+#### RETURN SPECIAL QUAD ####
+def p_RETURNING(p): # A STATIC GRAMMAR, ONLY THE EXP IS SPECIAL
+    '''
+    returning : RETURN LEFTPAR exp RIGHTPAR SEMICOLON
+    '''
+    global PilaO,QUADSlist,HASHofoperatorsinquads,GLOBALvar_set
+    valtoreturn = PilaO.pop()
+    Pilatypes.pop()
+    funcviraddr = GLOBALvar_set[CURRENTfunctionname]['virtualaddress'] # GET ME THE ADDRESS FOR THE FUNCTION SPECIAL VARIABLE WE HAVE HERE
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['RETURN'],valtoreturn,-1,funcviraddr))
+
+
+
+
+######--------------------- READ LOGIC SECTION ------------------------------######
+
+def p_READING(p): # OUR OUTER SHELL OF THE READ LOGIC
+    '''
+    reading : READ LEFTPAR neuralreadid idarray mulread RIGHTPAR SEMICOLON
+    '''
+
+def p_NUERALREADID(p):
+    '''
+    neuralreadid : ID
+    '''
+    global QUADSlist,HASHofoperatorsinquads
+    assignedvar = virtualaddrfetcher(p[1]) # THE VAR TO BE READ AND ASSIGNED VALUE, GET THEIR ADDRESS
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['READ'],-1,-1,assignedvar)) #ADD THE QUADRUPLE
+
+def p_MULREAD(p): # MANAGE THE MULTIPLE READING TO ASSIGN VALUE TO VARIABLES
+    '''
+    mulread : COMMA neuralreadid idarray mulread
+            | empty
+    '''
+
+
+
+######--------------------- READ LOGIC SECTION ------------------------------######
+def p_WRITING(p): # WRITE ALL DATA, ARRAY EXPECTED TO BE ALREADY IN A SPECIFIC VAR WHEN ACCESSED BY EXP
+    '''
+    writing : WRITE LEFTPAR neuralwrite mulwrite RIGHTPAR SEMICOLON
+    '''
+
+def p_NEURALWRITE(p):
+    '''
+    neuralwrite : writetype
+                | exp
+    '''
+    global PilaO,QUADSlist,HASHofoperatorsinquads
+    result = PilaO.pop() # GET THE OPERAND THAT IS GOIN TO WRITE
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['WRITE'],-1,-1,result)) # ADD THE WRITE QUADRUPLE
+
+def p_WRITETYPE(p):
+    '''
+    writetype : STRING
+            | CTECHAR
+    '''
+    global PilaO
+    PilaO.append(p[1]) # STORE THAT OPERAND THAT IS WAITING AS A STRING OR CTECHAR
+
+def p_MULWRITE(p): #MANAGE MULTIPLE VARIABLES TO WRITE
+    '''
+    mulwrite : COMMA neuralwrite mulwrite
+            | empty
+    '''
+
+
+
+######--------------------- CONDITIONALS LOGIC SECTION ------------------------------######
+
+########### IF AND ELSE ##################
+
+def p_IFING(p):
+    '''
+    ifing : IF LEFTPAR exp neuralif THEN LEFTBR statutes RIGHTBR elsing
+    '''
+    global Pjumps, QUADSlist
+    if Pjumps: #IF THER IS SOMETHING THERE
+        endo = Pjumps.pop() # GET THAT VIRTUAL ADDRESS
+        newQuad = QUADSlist[endo-1] # GET THE QUAD TO CHANGE PENDING ADDRESS
+        newQuad.result = len(QUADSlist)+1 # THE RESULT STORES THE APPROPIATE ADDRESS
+
+def p_ELSING(p): # CHECK IF THERE IS AN ELSE AND PROCESS THE STATUES IF SO
+    '''
+    elsing : neuralelse LEFTBR statutes RIGHTBR
+            | empty
+    '''
+
+def p_NEURALELSE(p): # GETTING THE QUADRUPLE ADDED, TO GET THE GOTO FOR THE ELSE
+    '''
+    neuralelse : ELSE 
+    '''
+    global QUADSlist, Pjumps, HASHofoperatorsinquads
+    if Pjumps:
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTO'],-1,-1,-999))
+        elseendo = Pjumps.pop() # GET THE ADDRESS FOR THE JUMP
+        Pjumps.append(len(QUADSlist)) # ADD THE NUMVALUE TO BE JUMPED
+        newQuad = QUADSlist[elseendo-1] # GET THE ADDRESS QUADRUPLE TO BE MODIFIED
+        newQuad.result = len(QUADSlist) + 1 # STORES THE APPROPIATE ADDRESS
+    
+def p_NEURALIF(p): # THE NEURAL POINT THAT ADDS THE QUADRUPLE OF THE IF
+    '''
+    neuralif : RIGHTPAR
+    '''
+    global Pilatypes, PilaO,QUADSlist,Pjumps,HASHofoperatorsinquads
+    if Pilatypes and PilaO: # DO WE HAVE VALUES TO WORK WITH?
+        vartype = Pilatypes.pop()
+        typechecker(vartype,'bool') # ONLY BOOLS ARE ALLOWED HERE IN THE DECISION 
+        result = PilaO.pop()
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTOF'],result,-1,-99)) # THE QUADRUPLE, ADDRESS PENDING
+        Pjumps.append(len(QUADSlist)) #  GET THE QUAD COUNTER OF THE JUMP APPENDED
+
+
+
+########### WHILE ##################
+
+def p_WHILING(p): # 
+    '''
+    whiling : neuralwhile LEFTPAR exp neuralwhile2 DO LEFTBR statutes RIGHTBR
+    '''
+    global Pjumps,QUADSlist,HASHofoperatorsinquads
+    if Pjumps:
+        endo = Pjumps.pop()
+        starto = Pjumps.pop()
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTO'],-1,-1,starto+1)) # SET THE GOTO QUAD WITH THE APPROPIATE ADDRESS
+        newQuad =  QUADSlist[endo - 1]
+        newQuad.result = len(QUADSlist) + 1 # STORE THE APPROPIATE ADDRESS
+    
+def p_NEURALWHILE(p): # NEURAL POINT TO GET THE STACK OF JUMPS WITH THE QUAD COUNTER
+    '''
+    neuralwhile : WHILE
+    '''
+    global Pjumps, QUADSlist
+    Pjumps.append(len(QUADSlist)) # GET THAT QUAD COUNTER
+
+def p_NEURALWHILE2(p): # NEURAL POINT CHECKING IF THE TYPE ACTUALLY WORKS, AND GET THE INITIAL GOTOF
+    '''
+    neuralwhile2 : RIGHTPAR
+    '''
+    global Pilatypes,PilaO,QUADSlist, Pjumps,HASHofoperatorsinquads
+    if Pilatypes and PilaO: # DO WE HAVE VALS to WORK WITH?
+        exptype = Pilatypes.pop()
+        typechecker(exptype,'bool')
+        result = PilaO.pop()
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTOF'],result,-1,-999)) # THE QUAD, PENDING THE ADDRESS FOR THE GOTOF
+        Pjumps.append(len(QUADSlist)) #GET THE QUAD COUNTER STORED
