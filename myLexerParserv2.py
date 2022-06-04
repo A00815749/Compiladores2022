@@ -134,6 +134,20 @@ semantics = Semanticcube()
 
 #~~~~~~~IN PROGRESSS~~~~~~~~~~~
 
+def getandsetVirtualAddrCTE(value): # VIRTUAL ADDRESS SETER FOR CTES
+    global CONSTINTcounter,CONSTFLOATcounter,CONSTCHARcounter
+    constanttype = type(value)
+    if constanttype == int:
+        CONSTINTcounter += 1
+        return CONSTINTcounter
+    elif constanttype == float:
+        CONSTFLOATcounter += 1
+        return CONSTFLOATcounter
+    elif constanttype == str:
+        CONSTCHARcounter += 1
+        return CONSTCHARcounter
+    else: 
+        ERRORHANDLER("type error", str(value)) # SEND THE VALUE THAT WE TRIED TO CONSTANT
 
 def getandsetVirtualAddrTemp(type): # GET THE VIRTUAL ADDRESS OF OUR TEMPORALS AND POINTERS
     global TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter
@@ -238,6 +252,10 @@ def getType(val): #GETTING THE TYPE IN THE FOR NEURALGIC POINTS
     else:
         ERRORHANDLER("notthere",val) # IF ITS NOT THERE, THEN IT DOES NOT EXIST
 
+def existencesensor(id): # METHOD TO CHECK IF THE DATA OF THE CONSTANT IS SAVED
+    global LOCALvar_set,GLOBALvar_set,CONSTANTSvar_set,TABLEof_functions
+    if id not in CONSTANTSvar_set and id not in GLOBALvar_set and id not in LOCALvar_set and id not in TABLEof_functions:
+        ERRORHANDLER("notthere",id)
 
 def isarraymethod(id): #SIMILAR METHOD TO THE ABOVE, BUT RETURNS A BOOLEAN AND HAS NO ERRORHANDLER
     global GLOBALvar_set, LOCALvar_set
@@ -978,7 +996,7 @@ def p_NEURALFOR3(p): # NEURALGIC POINT FOR THE GOTOF, ACTUALLY CHECK THE CONDITI
 
 
 
-######--------------------- EXP (EXPRESIION) LOGIC SECTION ------------------------------######
+######--------------------- EXP (EXPRESION) LOGIC SECTION ------------------------------######
 #FOLLOWING THE OPERATORS PRIORITY IN PYTHON STYLE
 
 def p_EXP(p): 
@@ -1186,4 +1204,110 @@ def p_FINEXP(p):
             QUADSlist.append(Quadruple(HASHofoperatorsinquads[operator],leftOperand,rightOperand,newvirtualaddr))
             PilaO.append(newvirtualaddr)
             Pilatypes.append(resulttype)
-# HANDLING ALL THE ABOVE BETWEEN PARENTHESES, VECTORS, AND FUNCTION CALLS
+# HANDLING ALL THE ABOVE BETWEEN PARENTHESES, VECTORS
+
+
+
+### CONSTANT EXP HANDLING
+
+def p_CTEEXP(p): # HANDLE THE CONSTANTS
+    '''
+    cteexp : CTEINT
+            | CTEFLOAT
+            | CTECHAR
+            | ID neuralexist paramsexp
+    '''
+    global CONSTANTSvar_set, PilaO
+    if len(p) == 2:
+        if not p[1] in CONSTANTSvar_set: # IF THIS CONSTANT ISNT ALREADY SAVED, SAVE IT
+            CONSTANTSvar_set[p[1]] = getandsetVirtualAddrCTE(p[1])
+    p[0]=p[1] #SKIPPING
+
+
+def p_NEURALEXIST(p): # CHECK IF THE ID ACTUALLY EXISTS
+    '''
+    neuralexist : 
+    '''
+    existencesensor(p[-1])
+    POper.append("~~~") # FAKE BOTTOM
+    p[0] = p[-1]
+
+
+### EXPRESION CONSTANT AND FUNCTION CALLS
+
+def p_PARAMSEXP(p):
+    '''
+    paramsexp : LEFTPAR neuralera paramsexp2 neuralpar
+            | idarray
+    '''
+
+def p_PARAMSEXP2(p):
+    '''
+    paramsexp2 : exp neuralpar2 mulparamsexp
+                | empty 
+    '''
+
+def p_NEURALPAR(p):
+    '''
+    neuralpar : RIGHTPAR
+    '''
+    global QUADSlist,HASHofoperatorsinquads,TABLEof_functions
+    global GLOBALvar_set,CURRENTfunctionname,PilaO,POper,Pilatypes
+    #global CONTPARAMETERSlist, PARAMETERSTABLElist
+    POper.pop()
+    id = p[-4]
+    #auxparam = CONTPARAMETERSlist.pop()
+    #if len(PARAMETERSTABLElist) != auxparam:
+    #    ERRORHANDLER("invalidnumparams")
+    startaddr = TABLEof_functions[id]['Initialfuncpoint']
+    funcvirtaddr = GLOBALvar_set[id]['virtualaddress']
+    functiontype = GLOBALvar_set[id]['type']
+    temporal =getandsetVirtualAddrTemp(functiontype)
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOSUB'],id,-1,startaddr))
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],funcvirtaddr,-1,temporal))
+    PilaO.append(temporal)
+    Pilatypes.append(functiontype)
+
+def p_NEURALERA(p):
+    '''
+    neuralera : 
+    '''
+    global QUADRUPLESlist,HASHOFOPERATORSINquads,THETABLEoffunctions,CONTPARAMETERSlist,STACKOFoperatorssymb
+    global PilaO, STACKOFtypes,PARAMETERSTABLElist,THEPARAMETERSset
+    STACKOFoperatorssymb.append("~~~")
+    id =(p[-3]) #FUNCTION ID
+    QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['ERA'],-1,-1,id)) 
+    CONTPARAMETERSlist.append(0)
+
+
+def p_NEURALPAR2(p):
+    '''
+    neuralpar2 :
+    '''
+    global PARAMSINTcounter,PARAMSFLOATcounter,PARAMSCHARcounter,PARAMETERSTABLElist
+    global STACKOFoperands,STACKOFtypes,QUADRUPLESlist,HASHOFOPERATORSINquads, PARAMETERQUEUElist,CONTPARAMETERSlist
+    if STACKOFoperands and STACKOFtypes and PARAMETERSTABLElist:
+        argument = STACKOFoperands.pop()
+        argumentype = STACKOFtypes.pop()
+        paramaux =CONTPARAMETERSlist.pop()
+        if argumentype!= PARAMETERSTABLElist[paramaux]:
+            ERRORHANDLER("tiposdif")
+        if argumentype == 'int':
+            PARAMSINTcounter +=1
+            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+        elif argumentype == 'float':
+            PARAMSINTcounter +=1
+            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+        elif argumentype == 'char':
+            PARAMSINTcounter +=1
+            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+        CONTPARAMETERSlist.append(paramaux+1)
+    else:
+        if len(PARAMETERSTABLElist)!= CONTPARAMETERSlist:
+            ERRORHANDLER("functionwithparamhuh",p[-1])
+
+def p_MULPARAMSEXP(p): #HANDLING MULTIPLE PARAMETER DECLARATION
+    '''
+    mulparamsexp : COMMA exp neuralpar2 mulparamsexp
+                | empty
+    '''
