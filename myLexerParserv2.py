@@ -135,6 +135,27 @@ semantics = Semanticcube()
 #~~~~~~~IN PROGRESSS~~~~~~~~~~~
 
 
+def getandsetVirtualAddrTemp(type): # GET THE VIRTUAL ADDRESS OF OUR TEMPORALS AND POINTERS
+    global TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter
+    global temporalsCounter, POINTERScounter
+    temporalsCounter += 1
+    if type == 'int':
+        TEMPINTcounter += 1
+        return TEMPINTcounter
+    elif type == 'float':
+        TEMPFLOATcounter += 1
+        return TEMPFLOATcounter
+    elif type == 'char':
+        TEMPCHARcounter += 1
+        return TEMPCHARcounter
+    elif type == 'bool':
+        TEMPBOOLcounter += 1
+        return TEMPBOOLcounter
+    elif type == 'pointer':
+        POINTERScounter += 1
+        return POINTERScounter
+
+
 def ERRORHANDLER(errortype,location = ""): # GET THE VARIOUS ERROR MESSAGES HANDLED
     errormessage = ""
     #I could match case here, but I dont want to change python versions midproject
@@ -174,6 +195,20 @@ def typechecker(type1,type2): # CHEKCIK IF OUR TYPES ARE ACTUALLY THE SAME, USED
     if type1 != type2:
         ERRORHANDLER("tiposdif",str(type1 + " ====== " + type2))
 
+def getValtype(val): # RETURN THE VALUE OF THE VARIABLE, FUNCTION... THINGY WE ARE ACCESSING
+    if val in LOCALvar_set:
+        return LOCALvar_set[val]['type']
+    if val in GLOBALvar_set:
+        return GLOBALvar_set[val]['type']
+    if val in TABLEof_functions:
+        return TABLEof_functions[val]['type']
+    if type(val) == int:
+        return 'int'
+    if type(val) == float:
+        return 'float'
+    if type(val) == str:
+        return 'char'
+
 
 def virtualaddrfetcher(val): #VIRTUAL ADDRESS FETCHER, CHECKING THE APPROPIATE SETS
     global GLOBALvar_set,LOCALvar_set, CONSTANTSvar_set,TABLEof_functions
@@ -189,10 +224,32 @@ def virtualaddrfetcher(val): #VIRTUAL ADDRESS FETCHER, CHECKING THE APPROPIATE S
         if type(val) == str:
             return CONSTANTSvar_set[str(val)]
 
+def getType(val): #GETTING THE TYPE IN THE FOR NEURALGIC POINTS
+    if val in LOCALvar_set: 
+        try:
+            return LOCALvar_set[val]['type']
+        except:
+            ERRORHANDLER("notype",val)
+    elif val in GLOBALvar_set:
+        try:
+            return GLOBALvar_set[val]['type']
+        except:
+            ERRORHANDLER("notype",val)
+    else:
+        ERRORHANDLER("notthere",val) # IF ITS NOT THERE, THEN IT DOES NOT EXIST
 
 
-
-
+def isarraymethod(id): #SIMILAR METHOD TO THE ABOVE, BUT RETURNS A BOOLEAN AND HAS NO ERRORHANDLER
+    global GLOBALvar_set, LOCALvar_set
+    try:
+        LOCALvar_set[id]['arraysensor']
+        return True
+    except:
+        try: 
+            GLOBALvar_set[id]['arraysensor']
+            return True
+        except:
+            return False
 
 
 
@@ -851,3 +908,282 @@ def p_NEURALWHILE2(p): # NEURAL POINT CHECKING IF THE TYPE ACTUALLY WORKS, AND G
         result = PilaO.pop()
         QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTOF'],result,-1,-999)) # THE QUAD, PENDING THE ADDRESS FOR THE GOTOF
         Pjumps.append(len(QUADSlist)) #GET THE QUAD COUNTER STORED
+
+
+
+
+########### FOR  ##################
+
+def p_FORING(p): # THE LOGIC FOR THE FOR STATUTE
+    '''
+    foring : FOR neuralfor idarray EQUAL exp neuralfor2 exp neuralfor3 LEFTBR statutes RIGHTBR
+    '''
+    global INITIALVARINfor,Pjumps, QUADSlist,HASHofoperatorsinquads,Pilatypes,PilaO
+    temporalint = getandsetVirtualAddrTemp('int') # GET OUR TEMPORAL ADDRESS 
+    constant1addr = virtualaddrfetcher(1) # THE CONSTANT 1 address
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['+'],INITIALVARINfor,constant1addr,temporalint)) # THE ITERATION
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],temporalint,-1,INITIALVARINfor)) #CONTINUING ITERATION
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],temporalint,-1,PilaO[-1])) #THE QUADRUPLE GETTING THE OPERATOR STACK MODIFIED
+    endo = Pjumps.pop() #GET THE COUNTER FOR THE ENDO
+    starto = Pjumps.pop() # GET THE COUNTER FOR THE STARTO
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTO'],-1,-1,starto)) # VALIDATE THE CONDOITION
+    QUADSlist[endo - 1].result =  len(QUADSlist) + 1 # GET THAT PENDING QUADRUPLE WITH THE QUAD COUNTER
+    operandcleaner =  PilaO.pop()
+    typecleaner = Pilatypes.pop()
+
+def p_NEURALFOR(p): # GET THE ID ADDRESS HANDLED FOR THE CONTROL VARIABLE
+    '''
+    neuralfor : ID
+    '''
+    global PilaO, Pilatypes
+    virtualaddr = virtualaddrfetcher(p[1]) # THE VIRTUAL ADDRESS FOR THE VARIABLE WE ARE WORKING
+    type =  getType(p[1]) # GET OUR TYPE FOR THE VAR WE ARE WORKING WITH
+    PilaO.append(virtualaddr) # ADD TO THE STACK THE VIRTUAL ADDRESS WE ARE WORKING WITH
+    Pilatypes.append(type)
+    typechecker(type,'int') # ONLY INTS ENTER OUR FORS
+
+def p_NEURALFOR2(p): #NEURALGIC POINT TO CHECK IF THE VALUE THAT IS FORING IS APPROPIATE
+    '''
+    neuralfor2 : TO
+    '''
+    global Pilatypes,INITIALVARINfor,PilaO,QUADSlist,HASHofoperatorsinquads
+    typeexp = Pilatypes.pop()
+    typechecker(typeexp,'int') # ONLY INTS FOR THIS FOR
+    if PilaO: #NOT EMPTY
+        exp = PilaO.pop()
+        INITIALVARINfor = PilaO[-1] # THE INITIAL VARINFOR GOES FROM THE LAST OPERAND
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],exp,-1,INITIALVARINfor)) # THE QUADRUPLE FOR THE INITIAL FOR VAL
+
+def p_NEURALFOR3(p): # NEURALGIC POINT FOR THE GOTOF, ACTUALLY CHECK THE CONDITION VALIDITY
+    '''
+    neuralfor3 : DO
+    '''
+    global Pilatypes,PilaO,INITIALVARINfor,FINALVARINfor,Pjumps,QUADSlist,HASHofoperatorsinquads
+    if Pilatypes and PilaO: # DO WE HAVE VALUES TO WORK WITH
+        typeexp = Pilatypes.pop()
+        typechecker(typeexp,'int') #ONLY INTS CONTINUE IN THIS FOR
+        exp =  PilaO.pop()
+        FINALVARINfor = getandsetVirtualAddrTemp('int') #GET THE VIRTUAL ADDR FOR THE TEMP
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],exp,-1,FINALVARINfor))
+        temporalbool = getandsetVirtualAddrTemp('bool') # GET THE THE VIRTUAL ADDR FOR THE BOOL
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['<'],INITIALVARINfor, FINALVARINfor,temporalbool))
+        Pjumps.append(len(QUADSlist)) #QUAD COUNTER
+        QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTOF'],temporalbool,-1,99))
+        Pjumps.append(len(QUADSlist)) #QUAD COUNTER AGAIN
+
+
+
+
+
+
+
+
+######--------------------- EXP (EXPRESIION) LOGIC SECTION ------------------------------######
+#FOLLOWING THE OPERATORS PRIORITY IN PYTHON STYLE
+
+def p_EXP(p): 
+    '''
+    exp : andexp exp1
+    '''
+    p[0] = p[1] # SKIPPING
+
+def p_EXP1(p):
+    '''
+    exp1 : OR exp
+        | empty
+    '''
+
+def p_ANDEXP(p):
+    '''
+    andexp : boolexp andexp1
+    '''
+    p[0]= p[1] #SKIPPING
+
+def p_ANDEXP1(p):
+    '''
+    andexp1 : neuraland andexp
+            | empty
+    '''
+
+def p_NEURALAND(p):
+    '''
+    neuraland : AND
+    '''
+    global POper
+    POper.append(p[1]) # GET THE AND OPERATOR
+
+
+#### BOOLEAN TOKENS HANDLER AND QUADAND LOADER####
+def p_BOOLEXP(p):
+    '''
+    boolexp : arithexp boolexp1
+    '''
+    global POper,PilaO,Pilatypes,QUADSlist #GENERATE THE AND QUADS
+    if POper:
+        if POper[-1] == 'and' :
+            rightOperand = PilaO.pop()
+            righttype =  Pilatypes.pop()
+            leftOperand = PilaO.pop()
+            lefttype = Pilatypes.pop()
+            operator = POper.pop()
+            resulttype = semantics.getType(lefttype,righttype,operator)
+            if resulttype == 'ERROR':
+                ERRORHANDLER("tiposdif")
+            newvirtualaddr = getandsetVirtualAddrTemp(resulttype)
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads[operator],leftOperand,rightOperand,newvirtualaddr))
+            PilaO.append(newvirtualaddr)
+            Pilatypes.append(resulttype)
+    
+    p[0]=p[1] #SKIPPING
+
+def p_BOOLEXP1(p):
+    '''
+    boolexp1 : neuralbool arithexp
+            | empty
+    '''
+
+def p_NEURALBOOL(p):
+    '''
+    neuralbool : GREATER
+                | GREATERAND
+                | LESSER
+                | LESSERAND
+                | SAME
+                | NOTSAME
+                | NOT
+    '''
+    global POper
+    POper.append(p[1]) # ADD THE TOKEN THAT WE HAVE IDENTIFIED AS A BOOLEAN OPERATOR
+
+
+
+
+
+#### ARITHMETIC TOKENS HANDLER AND QUADBOOL LOADER####
+
+def p_ARITHEXP(p):
+    '''
+    arithexp : geoexp arithexp1
+    '''
+    global POper, PilaO,Pilatypes,QUADSlist,HASHofoperatorsinquads
+    boolopers = ['>','>=', '<','<=','==','<>']
+    if POper :
+        if POper[-1] in boolopers: # MAKING THE QUAD THIS BOOLEAN OPERATORS
+            rightOperand = PilaO.pop()
+            righttype =  Pilatypes.pop()
+            leftOperand = PilaO.pop()
+            lefttype = Pilatypes.pop()
+            operator = POper.pop()
+            resulttype = semantics.getType(lefttype,righttype,operator)
+            if resulttype == 'ERROR':
+                ERRORHANDLER("tiposdif")
+            newvirtualaddr = getandsetVirtualAddrTemp(resulttype)
+            
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads[operator],leftOperand,rightOperand,newvirtualaddr))
+            PilaO.append(newvirtualaddr)
+            Pilatypes.append(resulttype)
+    p[0] = p[1] #SKIPPING
+
+def p_ARITHEXP1(p):
+    '''
+    arithexp1 : neuralarith arithexp
+                | empty
+    '''
+
+def p_NEURALARITH(p): # SUM AND SUBSTRACTING SYMBOLS ADDED
+    '''
+    neuralarith : PLUS
+                | REST
+    '''
+    global POper
+    POper.append(p[1])
+
+
+#### GEOMETRIC TOKENS HANDLER AND QUADARITH LOADER####
+
+def p_GEOEXP(p):
+    '''
+    geoexp : finexp geoexp1
+    '''
+    global POper,PilaO,Pilatypes,QUADSlist,HASHofoperatorsinquads
+    if len(POper) > 0:
+        if POper[-1] == '+' or POper[-1] == '-': #GENERATE ARITH QUADS
+            rightOperand = PilaO.pop()
+            righttype =  Pilatypes.pop()
+            leftOperand = PilaO.pop()
+            lefttype = Pilatypes.pop()
+            operator = POper.pop()
+            resulttype = semantics.getType(lefttype,righttype,operator)
+            if resulttype == 'ERROR':
+                ERRORHANDLER("tiposdif")
+            newvirtualaddr = getandsetVirtualAddrTemp(resulttype)
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads[operator],leftOperand,rightOperand,newvirtualaddr))
+            PilaO.append(newvirtualaddr)
+            Pilatypes.append(resulttype)
+        p[0] = p[1]
+
+def p_GEOEXP1(p):
+    '''
+    geoexp1 : neuralgeo geoexp
+            | empty
+    '''
+
+def p_NEURALGEO(p): # THE TOKEN HANDLER FOR GEOMETRICS
+    '''
+    neuralgeo : TIMES
+            | DIVIDE
+    '''
+    global POper
+    POper.append(p[1])
+
+
+# PARENTHESIS LOGICS WITH FALSE BOTTOMS
+
+def p_ADDBOTTOM(p):
+    '''
+    addbottom : LEFTPAR
+    '''
+    global POper
+    POper.append('~~~') ## ADD FALSE BOTTOM
+
+def p_POPBOTTOM(p):
+    '''
+    popbottom : RIGHTPAR
+    '''
+    global POper
+    POper.pop() #GET RID OF FALSE BOTTOM
+
+def p_FINEXP(p):
+    '''
+    finexp : addbottom exp popbottom
+            | cteexp
+    '''
+    global PilaO,POper,Pilatypes,QUADSlist,HASHofoperatorsinquads,CONSTANTSvar_set
+    if len(p) == 2:
+        virtualaddr = virtualaddrfetcher(p[1]) #IF NOT FUNCTION CALL, DEAL WITH VECTOR
+        if not virtualaddr >= 27000 and virtualaddr < 30000:
+            PilaO.append(virtualaddr)
+            Pilatypes.append(getValtype(p[1]))
+        if isarraymethod(p[1]):
+            debug = PilaO.pop()
+        p[0] = p[1]
+    if len(p) == 3: # DEAL WITH THE FUNCTION CALLS
+        newvirtualadrr = virtualaddrfetcher(p[1])
+        PilaO.append(newvirtualadrr)
+        Pilatypes.append(getValtype(p[1]))
+        p[0] = p[1]
+    if len(POper) > 0: # GENERATE THE ARITH QUADS
+        if POper[-1] =='*' or POper[-1]=='/':
+            rightOperand = PilaO.pop()
+            righttype =  Pilatypes.pop()
+            leftOperand = PilaO.pop()
+            lefttype = Pilatypes.pop()
+            operator = POper.pop()
+            resulttype = semantics.getType(lefttype,righttype,operator)
+            if resulttype == 'ERROR':
+                ERRORHANDLER("tiposdif")
+            newvirtualaddr = getandsetVirtualAddrTemp(resulttype)
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads[operator],leftOperand,rightOperand,newvirtualaddr))
+            PilaO.append(newvirtualaddr)
+            Pilatypes.append(resulttype)
+# HANDLING ALL THE ABOVE BETWEEN PARENTHESES, VECTORS, AND FUNCTION CALLS
