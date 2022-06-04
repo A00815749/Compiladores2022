@@ -296,6 +296,9 @@ lexer = lex.lex()
 
 
 
+
+
+
 ########################################################################################################################################
 
 #---------------------------------------------------THE GRAMMAR ------------------------------------------------------------------------
@@ -308,7 +311,7 @@ lexer = lex.lex()
 
 
 
-#--------------OUTER INITIAL SHELL--------------#
+#-----------------------------------OUTER INITIAL SHELL---------------------------------------------#
 #functions = modules
 
 def p_PROGRAM(p): #PROGRAM SHELL LOGIC
@@ -339,3 +342,254 @@ def p_NEURALADDFUNCDIR(p): #NEURALGIC POINT THAT SAVES THE MAIN PROGRAM, STORING
     QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTO'],-1,-1,-999))
     Pjumps.append(len(QUADSlist))
     #### AUXILIAR set the virtual address of constants 0 and 1, we will need it##
+
+def p_NEURALMAINJUMP(p):
+    '''
+    neuralmainjump :
+    '''
+    global QUADSlist, Pjumps
+    if Pjumps : #CHECK IF PENDING JUMPS EXIST, SHOULD BE THE MAIN JUMP
+        endo = Pjumps.pop()
+        newQuad = QUADSlist[endo-1]
+        newQuad.result = len(QUADSlist) + 1 # GO TO THE PART WHERE THE MAIN ACTUALLY STARTS
+
+
+
+
+#####------------------ VARIABLE DECLARATION LOGIC-----------------#####
+
+def p_VARSGL(p): #THE GLOBAL VARS PART
+    '''
+    varsgl : VARS vars 
+            | empty
+    '''
+
+def p_VARS(p):
+    '''
+    vars : typing COLON neuralinsertvar varsarr varsmul vars
+            | empty
+    '''
+
+def p_NEURALINSERTVAR(p): #INSERT THE VAR DATA WITH ADDRESS AND TYPE
+    '''
+    neuralinsertvar : ID
+    '''
+    global CURRENTcontext,CURRENTtype #THE CURRENT TYPE DEALT WITH THE 'TYPING' GRAMMAR BELOW
+    p[0]= p[1] #TOKEN SKIPPING
+    ### AUXILIAR NEURAL FUNCTION to GET AND SET THE VIRTUAL ADDRESS
+    # AUXILIAR FUNCTION TO INSERT IN VARTABLE
+
+
+def p_VARSMUL(p): #MULTIPLE VARIABLE LOGIC TO GET VARIABLES SEPARATED BY COMMAS
+    '''
+    varsmul : SEMICOLON
+            | COMMA neuralinsertvar varsarr varsmul
+    '''
+
+
+#-------------------- VECTOR VARIABLE DECLARATION LOGIC---------------#
+
+def p_VARSARR(p): # LOGIC FOR GETTING VECTOR VARIABLES
+    '''
+    varsarr : neuralinitdim CTEINT neuralenddim
+            | empty
+    '''
+    ### LOGIC IN PROGRESS.....
+
+def p_NEURALENDDIM(p):
+    '''
+    neuralenddim : RIGHTSQR
+    '''
+    ### LOGIC IN PROGRESS.....
+
+
+def p_NEURALINITDIM(p): # MAKE THE STORED VARIABLE VECTOR HAVE AN ARRAYSENSOR SET TO TRUE
+    '''
+    neuralinitdim : LEFTSQR
+    '''
+    ### LOGIC IN PROGRESS.....
+
+# TYPING OF VARIABLES SECTION 
+
+def p_TYPING(p):
+    '''
+    typing : INT
+            | FLOAT
+            | CHAR
+    '''
+    global CURRENTtype
+    CURRENTtype = p[1] # THE NEXT TOKEN GETS TAKEN AS THE CURRENT TYPE
+    p[0] = p[1] #SKIPPING
+
+#--------------------------------FUNCTIONS SHELL-----------------------------------------#
+# IN THE GRAMMAR STYLE OF function void/type FunctionName (int: id, float: id[val])
+
+def p_MODULES(p): #LOGIC TO GET THE MODULES/FUNCTIONS SAVED
+    '''
+    modules : FUNCTION functype neuralinsertfuncs funcparam
+            | empty
+    '''
+
+def p_NEURALINSERTFUNCS(p): # INSERT WITH AUXILIAR FUNCTIONS
+    '''
+    neuralinsertfuncs : ID
+    '''
+    global CURRENTcontext, CURRENTtype, LOCALvar_set,GLOBALvar_set,CURRENTfunctionname
+    CURRENTfunctionname = p[1] # GET THAT FUNCTION NAME (THE ID)
+    p[0]= p[1] #SKIPPING
+    CURRENTcontext = 'l'
+    newaddr = 0 #_____AUXILIAR FUNCTIONS OF VIRTUALADDRES
+    GLOBALvar_set[CURRENTfunctionname]={'virtualaddress': newaddr, 'type' : CURRENTtype} # SAVE THE FUNCTION NAME AS A GLOBAL VARIABLE AS SEEN IN CLASS
+    #_______AUXILIAR FUNCTION TO INSERT IN FUNCTION TABLE
+
+
+def p_FUNCPARAM(p): #GRAMMAR LOGIC TO GET ALL PARAMETERS AND NEURALGIC POINTS RELATING TO FUNCTIONS MAINTENANCE
+    '''
+    funcparam : LEFTPAR parameters RIGHTPAR SEMICOLON varsgl LEFTBR neuralinitfuncs statutes RIGHTBR neuralfuncsize neuralendfuncs functions
+    '''
+    global CURRENTcontext 
+    CURRENTcontext = 'l' #CHANGE THE CONTEXT
+
+def p_NEURALENDFUNCS(p): # NEURALGIC POINT FOR ENDPROC QUADS AND RESETTING LOCAL MEMORY
+    '''
+    neuralendfuncs :
+    '''
+    global TABLEof_functions,QUADSlist,HASHofoperatorsinquads,CURRENTfunctionname, TEMPORALScounter
+    id = CURRENTfunctionname
+    TABLEof_functions[id]['Tempsnumber'] = TEMPORALScounter # SAVE THE TEMPORALS NUMBER
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['ENDPROC'],-1,-1,-1)) #SAVE THE QUAD
+    #### AUXILIAR TO RESET THE LOCAL AND TEMPORAL VARIABLES
+
+def p_NEURALFUNCSIZE(p): # THE NEURALGIC POINT THE HANDLES THE VARIABLE SIZES OF THE FUNCTION INVOLVED
+    '''
+    neuralfuncsize :
+    '''
+    global TABLEof_functions, LOCALvar_set, QUADSlist, CURRENTfunctionname
+    global LOCALINTcounter,LOCALFLOATcounter, LOCALCHARcounter, TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter, POINTERScounter
+    actualfuncname = CURRENTfunctionname
+    TABLEof_functions[actualfuncname]['Paramnumbers'] = len(LOCALvar_set)
+    TABLEof_functions[actualfuncname]['Intnumbers'] = (LOCALINTcounter-(7000-1)) + (TEMPINTcounter - (13000-1))
+    TABLEof_functions[actualfuncname]['Floatnumbers'] = (LOCALFLOATcounter - (9000 - 1)) + (TEMPFLOATcounter - (15000-1))
+    TABLEof_functions[actualfuncname]['Charnumbers'] = (LOCALCHARcounter-(11000-1)) + (TEMPCHARcounter - (17000-1))
+    TABLEof_functions[actualfuncname]['Boolnumbers'] = (TEMPBOOLcounter-(19000-1))
+    TABLEof_functions[actualfuncname]['Pointernumbers'] = (POINTERScounter-(40000-1))
+    # ALL THE SAVING OF ACTUAL VARIABLE NUMBERS, SAME AS THE OUTER PROGRAM VERSION
+
+def p_NEURALINITFUNCS(p): #NEURALGIC POINT THAT GENERATES THE QUAD AND SAVES THE FUNCTION ADDR IN THE TABLEof_functions
+    '''
+    neuralinitfuncs :
+    '''
+    global CURRENTfunctionname,QUADSlist
+    actualmodulename = CURRENTfunctionname
+    TABLEof_functions[actualmodulename]['Initialfuncpoint']= len(QUADSlist) + 1
+
+def p_FUNCTYPE(p): # DEALING WITH THE VOID OR TYPING
+    '''
+    functype : VOID
+            | typing
+    '''
+    global CURRENTtype
+    CURRENTtype = p[1] # SAVE THE TYPE WITH THE NEXT TOKEN
+
+
+
+####PARAMATERS AND RELATED SECTION #######
+
+def p_PARAMETERS(p): # THE LOGIC TO GET ALL THE PARAMETRS IN A FUNCTION CALL
+    '''
+    parameters : typing COLON neuralinsertparam idarray mulparams
+                | empty
+    '''
+    
+
+def p_NEURALINSERTPARAM(p): # GET AND SAVE ALL THE PARAMETER DATA
+    '''
+    neuralinsertparam : ID
+    '''
+
+
+def p_MULPARAMS(p): # HANDLE TEH MULTIPLE PARAMETERS
+    '''
+    mulparams : COMMA parameters
+                | empty
+    '''
+
+
+#--------------------------------THE STATUTES SHELL DEFINITION-----------------------------------------#
+
+def p_STATUTES(p): # THE CENTRAL LOGIC OF A PROGRAM WHERE WE HAVE ALL THE POSSIBLE STATUTES
+    '''
+    statutes : assign statuteaux
+            | reading statuteaux
+            | writing statuteaux
+            | returning statuteaux
+            | ifing statuteaux
+            | whiling statuteaux
+            | foring statuteaux
+            | exp statuteaux
+            | media statuteaux
+            | plotxy statuteaux
+            | mediana statuteaux
+            | moda statuteaux
+            | variance statuteaux
+            | stdev statuteaux
+    '''
+
+def p_STATUTEAUX(p): # THE MULTIPLE STATUTES HANDLER
+    '''
+    statuteaux : statutes
+                | empty
+    '''
+
+#------------------------ SPECIAL FUNCTIONS OF MYRLIKELANGUAGE --------------------------------#######
+def p_MEDIA(p):
+    '''
+    media : MEDIA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_MEDIANA(p):
+    '''
+    mediana : MEDIANA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_MODA(p):
+    '''
+    moda : MODA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_STDEV(p):
+    '''
+    stdev : STDEV LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_VARIANCE(p):
+    '''
+    variance : VARIANZA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_PLOTXY(p):
+    '''
+    plotxy : PLOTXY LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
+    '''
+
+def p_SPECIALFUNCLIST(p):
+    '''
+    specialfunclist : 
+    '''
+
+def p_SPECFUNCNUMBERS(p): # METHOD TO HANDLE THE CONSTANT NUMBERS
+    '''
+    specfuncnumbers : CTEINT neuralnum mulnumeros
+                    | CTEFLOAT neuralnum mulnumeros
+    '''
+
+def p_NEURALNUM(p): #NEURALGIC POINT TO DEAL WITH THE PARAMETERS OF A SPECIAL METHOD
+    '''
+    neuralnum :
+    '''
+
+def p_MULNUMEROS(p): # MULTIPLE CONSTANTS IN THE SPECIAL METHOD
+    '''
+    mulnumeros : COMMA specfuncnumbers
+                | empty
+    '''
