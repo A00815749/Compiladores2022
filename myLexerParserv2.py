@@ -10,6 +10,7 @@
 from re import split
 import os
 import sys
+from typing import Hashable
 import PIL
 import ply.yacc as yacc
 from Semanticcube import Semanticcube
@@ -875,36 +876,63 @@ def p_MEDIA(p):
     '''
     media : MEDIA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['MEDIA'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST
 
 def p_MEDIANA(p):
     '''
     mediana : MEDIANA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['MEDIANA'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST    
 
 def p_MODA(p):
     '''
     moda : MODA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['MODA'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST
+
 
 def p_STDEV(p):
     '''
     stdev : STDEV LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['STDEV'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST
 
 def p_VARIANCE(p):
     '''
     variance : VARIANZA LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['VARIANZA'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST
 
 def p_PLOTXY(p):
     '''
     plotxy : PLOTXY LEFTPAR specfuncnumbers RIGHTPAR specialfunclist SEMICOLON
     '''
+    global QUADSlist, HASHofoperatorsinquads, SPECIALMETHODScounter,SPECIALMETHODSlist,SPECIALMETHODSaux
+    SPECIALMETHODScounter +=1
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['PLOTXY'],-1,-1,SPECIALMETHODScounter)) #ADD THE SPECIAL QUADRUPLE
+    SPECIALMETHODSaux = [] # RESET THE AUXILIAR LIST
 
 def p_SPECIALFUNCLIST(p):
     '''
     specialfunclist : 
     '''
+    global SPECIALMETHODSlist, SPECIALMETHODSaux
+    SPECIALMETHODSlist.append(SPECIALMETHODSaux) # ADD THE AUXILIAR LIST FOR SPECIAL METHODS
 
 def p_SPECFUNCNUMBERS(p): # METHOD TO HANDLE THE CONSTANT NUMBERS
     '''
@@ -916,6 +944,8 @@ def p_NEURALNUM(p): #NEURALGIC POINT TO DEAL WITH THE PARAMETERS OF A SPECIAL ME
     '''
     neuralnum :
     '''
+    global SPECIALMETHODSaux
+    SPECIALMETHODSaux.append(p[-1]) # ADD THE PREVIOUS CONSTANT
 
 def p_MULNUMEROS(p): # MULTIPLE CONSTANTS IN THE SPECIAL METHOD
     '''
@@ -1439,12 +1469,12 @@ def p_NEURALPAR(p):
     '''
     global QUADSlist,HASHofoperatorsinquads,TABLEof_functions
     global GLOBALvar_set,CURRENTfunctionname,PilaO,POper,Pilatypes
-    #global CONTPARAMETERSlist, PARAMETERSTABLElist
+    global CONTPARAMETERSlist, PARAMETERSTABLElist
     POper.pop()
     id = p[-4]
-    #auxparam = CONTPARAMETERSlist.pop()
-    #if len(PARAMETERSTABLElist) != auxparam:
-    #    ERRORHANDLER("invalidnumparams")
+    auxparam = CONTPARAMETERSlist.pop()
+    if len(PARAMETERSTABLElist) != auxparam:
+        ERRORHANDLER("invalidnumparams")
     startaddr = TABLEof_functions[id]['Initialfuncpoint']
     funcvirtaddr = GLOBALvar_set[id]['virtualaddress']
     functiontype = GLOBALvar_set[id]['type']
