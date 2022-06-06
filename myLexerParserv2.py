@@ -766,10 +766,11 @@ def p_NEURALINSERTFUNCS(p): # INSERT WITH AUXILIAR FUNCTIONS
 
 def p_FUNCPARAM(p): #GRAMMAR LOGIC TO GET ALL PARAMETERS AND NEURALGIC POINTS RELATING TO FUNCTIONS MAINTENANCE
     '''
-    funcparam : LEFTPAR parameters RIGHTPAR SEMICOLON varsgl LEFTBR neuralinitfuncs statutes RIGHTBR neuralfuncsize neuralendfuncs functions
+    funcparam : LEFTPAR parameters RIGHTPAR SEMICOLON varsgl LEFTBR neuralinitfuncs statutes RIGHTBR neuralfuncsize neuralendfuncs modules
     '''
     global CURRENTcontext 
     CURRENTcontext = 'l' #CHANGE THE CONTEXT
+
 
 def p_NEURALENDFUNCS(p): # NEURALGIC POINT FOR ENDPROC QUADS AND RESETTING LOCAL MEMORY
     '''
@@ -950,7 +951,7 @@ def p_NEURALASSIGN(p):
 
 def p_NEURALASSIGN2(p):
     '''
-    neuralassign2 : =
+    neuralassign2 : EQUAL
     '''
     global POper
     POper.append(p[1]) # STORING THE EQUAL TOKEN
