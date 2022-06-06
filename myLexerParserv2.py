@@ -1415,7 +1415,7 @@ def p_NEURALEXIST(p): # CHECK IF THE ID ACTUALLY EXISTS
     neuralexist : 
     '''
     existencesensor(p[-1])
-    POper.append("~~~") # FAKE BOTTOM
+    #POper.append("~~~") # FAKE BOTTOM
     p[0] = p[-1]
 
 
@@ -1482,10 +1482,10 @@ def p_NEURALPAR2(p):
             PARAMSINTcounter +=1
             QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         elif argumentype == 'float':
-            PARAMSINTcounter +=1
+            PARAMSFLOATcounter +=1
             QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         elif argumentype == 'char':
-            PARAMSINTcounter +=1
+            PARAMSCHARcounter +=1
             QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         CONTPARAMETERSlist.append(paramaux+1)
     else:
