@@ -26,6 +26,7 @@ TABLEof_functions = {}
 GLOBALvar_set = {}
 LOCALvar_set = {}
 CONSTANTSvar_set = {}
+THEPARAMETERSset = {}
 
 
 #The Operation number that will be stored inside the quads product indicating which type of operation the quads is
@@ -66,6 +67,17 @@ HASHofoperatorsinquads = {
 ##### PYTHON LISTS, MUTABLE, ORDER OF ELEMENTS INHERENT IN THEIR APPLICATION, CAN FUNCTION AS STACKS #############
 #~~~~~~~IN PROGRESSS~~~~~~~~~~~
 QUADSlist=[]
+
+GLOBALnames = []
+LOCALnames = []
+
+
+CONTPARAMETERSlist = []
+PARAMETERSTABLElist = []
+PARAMETERSQUEUElist = []
+
+SPECIALMETHODSlist = []
+SPECIALMETHODSaux = []
 
 ######### MY STACKS, USING THE PYTHON LISTS AND POP() TO SIMULATE THE STACK BEHAVIOR
 PilaO = []
@@ -127,12 +139,33 @@ semantics = Semanticcube()
 #---------------------------------------------------NEURALGIC FUNCTIONS AUX ------------------------------------------------------------
 #---------------------------------------------------NEURALGIC FUNCTIONS AUX ------------------------------------------------------------
 
-
-
-
 ########### GLOBAL AUXILIAR METHODS FOR NEURALGIC POINTS MANIPULATIONS ############
 
-#~~~~~~~IN PROGRESSS~~~~~~~~~~~
+def getandsetVirtualAddrFunc(): # SET THE VIRTUAL ADDRESS FOR THE FUNCTION 
+    global FUNCTIONVIRADDRcounter
+    FUNCTIONVIRADDRcounter += 1
+    return FUNCTIONVIRADDRcounter
+
+def ENDANDRESETFunc(): #RESET EVERY LOCAL AND TEMPORAL VARIABLES, INCLUDING POINTERS AND PARAMETERS
+    global LOCALCHARcounter,LOCALFLOATcounter,LOCALINTcounter
+    global TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter, POINTERScounter
+    global PARAMSINTcounter, PARAMSFLOATcounter, PARAMSCHARcounter, temporalsCounter
+    global CURRENTcontext, LOCALvar_set, LOCALnames, THEPARAMETERSset,PARAMETERSTABLElist
+    LOCALINTcounter = 7000 - 1
+    LOCALFLOATcounter = 9000 - 1
+    LOCALCHARcounter = 11000 - 1
+    TEMPINTcounter = 13000 - 1
+    TEMPFLOATcounter = 15000 - 1
+    TEMPCHARcounter = 17000 - 1
+    TEMPBOOLcounter = 19000 - 1
+    PARAMSINTcounter = 30000 - 1
+    PARAMSFLOATcounter = 33000 - 1
+    PARAMSCHARcounter = 36000 - 1 
+    POINTERScounter = 40000 - 1 
+    CURRENTcontext = 'g' # RETURN TO THE GLOBAL SCOPE TILL NEXT LOCAL CHANGE
+    LOCALvar_set = {} # EMPTY THE LOCAL VARIABLES
+    LOCALnames = [] # EMPTY THE ORDERED USED NAMES
+    temporalsCounter = 0 # RESET OUR COUNTER FOR TEMPORALS USED
 
 def getandsetVirtualAddrCTE(value): # VIRTUAL ADDRESS SETER FOR CTES
     global CONSTINTcounter,CONSTFLOATcounter,CONSTCHARcounter
@@ -149,10 +182,35 @@ def getandsetVirtualAddrCTE(value): # VIRTUAL ADDRESS SETER FOR CTES
     else: 
         ERRORHANDLER("type error", str(value)) # SEND THE VALUE THAT WE TRIED TO CONSTANT
 
+def getandsetVirtualAddrVars(type, context): # VIRTUAL ADDRESS SETER FOR VARIABLES
+    global GLOBALINTcounter, GLOBALFLOATcounter, GLOBALCHARcounter
+    global LOCALINTcounter, LOCALFLOATcounter, LOCALCHARcounter
+    if context == 'g':
+        if type == 'int':
+            GLOBALINTcounter += 1
+            return GLOBALINTcounter + 1
+        elif type == 'float':
+            GLOBALFLOATcounter += 1
+            return GLOBALFLOATcounter + 1
+        elif type == 'char':
+            GLOBALCHARcounter += 1
+            return GLOBALCHARcounter + 1
+    else:
+        if type == 'int':
+            LOCALINTcounter += 1
+            return LOCALINTcounter
+        elif type == 'float':
+            LOCALFLOATcounter += 1
+            return LOCALFLOATcounter
+        elif type == 'char':
+            LOCALCHARcounter += 1
+            return LOCALCHARcounter
+
+
 def getandsetVirtualAddrTemp(type): # GET THE VIRTUAL ADDRESS OF OUR TEMPORALS AND POINTERS
     global TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter
-    global temporalsCounter, POINTERScounter
-    temporalsCounter += 1
+    global TEMPORALScounter, POINTERScounter
+    TEMPORALScounter += 1
     if type == 'int':
         TEMPINTcounter += 1
         return TEMPINTcounter
@@ -203,6 +261,32 @@ def ERRORHANDLER(errortype,location = ""): # GET THE VARIOUS ERROR MESSAGES HAND
         errormessage = "VARIABLE VECTOR SIN DIMENSIONES"
     print("ERROR " + errormessage + "\n at ===> " + str(location))
     sys.exit()
+
+def insertinFunctable(id,type,context, variables): #INSERT THE FUNCTION INTO A UNORDERED SET
+    global TABLEof_functions, GLOBALnames, LOCALnames
+    if id in TABLEof_functions:
+        ERRORHANDLER("funcrepetida") # FUNCTION ALREADY USED 
+    elif id in GLOBALnames:
+        ERRORHANDLER("nombreusado") # NAME ALREADY USED
+    else:
+        TABLEof_functions[id] = {'type' : type, 'context' : context, 'variables' : variables}
+        GLOBALnames.append(id)
+
+def insertinVartable(id,virtualaddr,type): #INSERT OUR FORMATTED VAR INSIDE A TABLE SET
+    if virtualaddr < 7000:
+        if id in GLOBALnames:
+            ERRORHANDLER("nombreusado", str(id + " " + type))
+        if id in GLOBALvar_set:
+            ERRORHANDLER("varrepetida",id)
+        GLOBALvar_set[id] = {'virtualaddress': virtualaddr, 'type' : type}
+        GLOBALnames.append(id)
+    else:
+        if id in LOCALnames:
+            ERRORHANDLER("nombreusado", str(id + " " + type))
+        if id in LOCALvar_set:
+            ERRORHANDLER("varrepetida",id)
+        LOCALvar_set[id] = {'virtualaddress': virtualaddr, 'type' : type}
+        LOCALnames.append(id)
 
 
 def typechecker(type1,type2): # CHEKCIK IF OUR TYPES ARE ACTUALLY THE SAME, USED IN ASSIGNING, CYCLES AND LOOPS
@@ -257,6 +341,35 @@ def existencesensor(id): # METHOD TO CHECK IF THE DATA OF THE CONSTANT IS SAVED
     if id not in CONSTANTSvar_set and id not in GLOBALvar_set and id not in LOCALvar_set and id not in TABLEof_functions:
         ERRORHANDLER("notthere",id)
 
+def setvirtualaddrdimensions(context,type,size): # METHOD USED IN DIMENSION MANAGEMENT OF VECTORS
+    global GLOBALINTcounter, GLOBALFLOATcounter, GLOBALCHARcounter
+    global LOCALINTcounter, LOCALCHARcounter, LOCALFLOATcounter
+    if context == 'g':
+        if type == 'int':
+            GLOBALINTcounter += size
+        elif type == 'float':
+            GLOBALFLOATcounter += size
+        elif type == 'char':
+            GLOBALCHARcounter += size
+    elif context == 'l':
+        if type == 'int':
+            LOCALINTcounter += size
+        elif type == 'float':
+            LOCALFLOATcounter += size
+        elif type == 'char':
+            LOCALCHARcounter += size
+
+def dimensionssensor(id): # METHOD THAT CHECKS IF THE VARIABLES IS ACTUALLY AN ARRAY (OR VECTOR IN THIS LANGUAGE)
+    global GLOBALvar_set, LOCALvar_set
+    try:
+        LOCALvar_set[id]['arraysensor']
+    except:
+        try: 
+            GLOBALvar_set[id]['arraysensor']
+        except:
+            ERRORHANDLER("dimshuh")
+
+
 def isarraymethod(id): #SIMILAR METHOD TO THE ABOVE, BUT RETURNS A BOOLEAN AND HAS NO ERRORHANDLER
     global GLOBALvar_set, LOCALvar_set
     try:
@@ -269,11 +382,27 @@ def isarraymethod(id): #SIMILAR METHOD TO THE ABOVE, BUT RETURNS A BOOLEAN AND H
         except:
             return False
 
+def setsizedims(id,context,size): # METHOD ADDING THE SIZE VALUE TO THE VARIABLE, IDENTIFYING IT AS A VECTOR
+    global GLOBALvar_set,LOCALvar_set
+    if context == 'g':
+        GLOBALvar_set[id]['size'] = size
+    elif context == 'l':
+        LOCALvar_set[id]['size'] = size
 
 
+def getdimlimits(id): # GET THE DIMENSION LIMITS OF A VECTOR
+    global GLOBALvar_set, LOCALvar_set
+    try:
+        return LOCALvar_set[id]['size']
+    except:
+        return GLOBALvar_set[id]['size']
 
-
-#~~~~~~~IN PROGRESSS~~~~~~~~~~~
+def fetinitialvirtualaddrvector(id): # GET THE INITIAL VIRTUAL ADDRESS OF A VECTOR
+    global GLOBALvar_set, LOCALvar_set
+    try:
+        return LOCALvar_set[id]['virtualaddress']
+    except:
+        return GLOBALvar_set[id]['virtualaddress']
 
 
 ########################################################################################################################################
@@ -463,9 +592,11 @@ def p_NEURALADDFUNCDIR(p): #NEURALGIC POINT THAT SAVES THE MAIN PROGRAM, STORING
     '''
     global CURRENTcontext,GLOBALvar_set,QUADSlist,HASHofoperatorsinquads,Pjumps,CONSTANTSvar_set
     p[0] = p[1] # SKIP THE TOKEN
-    #### AUXILIAR insert in the table function###
+    insertinFunctable(p[1],'VOID',CURRENTcontext,GLOBALvar_set)
     QUADSlist.append(Quadruple(HASHofoperatorsinquads['GOTO'],-1,-1,-999))
     Pjumps.append(len(QUADSlist))
+    CONSTANTSvar_set[0] = getandsetVirtualAddrCTE(0)
+    CONSTANTSvar_set[1] = getandsetVirtualAddrCTE(1)
     #### AUXILIAR set the virtual address of constants 0 and 1, we will need it##
 
 def p_NEURALMAINJUMP(p):
@@ -501,8 +632,8 @@ def p_NEURALINSERTVAR(p): #INSERT THE VAR DATA WITH ADDRESS AND TYPE
     '''
     global CURRENTcontext,CURRENTtype #THE CURRENT TYPE DEALT WITH THE 'TYPING' GRAMMAR BELOW
     p[0]= p[1] #TOKEN SKIPPING
-    ### AUXILIAR NEURAL FUNCTION to GET AND SET THE VIRTUAL ADDRESS
-    # AUXILIAR FUNCTION TO INSERT IN VARTABLE
+    newaddr = getandsetVirtualAddrVars(CURRENTtype,CURRENTcontext) ### AUXILIAR NEURAL FUNCTION to GET AND SET THE VIRTUAL ADDRESS
+    insertinVartable(p[1],newaddr,CURRENTtype)# AUXILIAR FUNCTION TO INSERT IN VARTABLE
 
 
 def p_VARSMUL(p): #MULTIPLE VARIABLE LOGIC TO GET VARIABLES SEPARATED BY COMMAS
@@ -525,14 +656,28 @@ def p_NEURALENDDIM(p):
     '''
     neuralenddim : RIGHTSQR
     '''
-    ### LOGIC IN PROGRESS.....
+    global CURRENTcontext, CURRENTtype, CONSTANTSvar_set
+    sizedim = int(p[-1]) # THE PREVIOUS TOKEN VALUE IS TAKEN AS INT
+    id = p[-3] # GET THE IDENTIFIER
+
+    if not p[-1] in CONSTANTSvar_set: # IF THE VALUE USED HERE ISNT ALREADY STORED AS A CONSTANT, STORE IT
+        CONSTANTSvar_set[sizedim] = getandsetVirtualAddrCTE(sizedim)
+
+    setsizedims(id,CURRENTcontext,sizedim) # SET THE DIMS IN THE APPROPIATE CONTEXT VARIABLE SET
+    setvirtualaddrdimensions(CURRENTcontext,CURRENTtype,sizedim) # SET THE LIMITS OF MEMORY USED
 
 
 def p_NEURALINITDIM(p): # MAKE THE STORED VARIABLE VECTOR HAVE AN ARRAYSENSOR SET TO TRUE
     '''
     neuralinitdim : LEFTSQR
     '''
-    ### LOGIC IN PROGRESS.....
+    global LOCALvar_set, GLOBALvar_set, CURRENTcontext
+    id = p[-1] # GET THE NAME WE ARE LOOKING FOR
+    if CURRENTcontext == 'g':
+        GLOBALvar_set[id]['arraysensor'] = True 
+    elif CURRENTcontext == 'l':
+        LOCALvar_set[id]['arraysensor'] = True
+
 
 
 #DIMENSIONAL ACCESS HANDLER
@@ -541,17 +686,46 @@ def p_IDARRAY(p):
     idarray : neuralinitarray exp verify RIGHTSQR
             | empty
     '''
+    global PilaO,QUADSlist,HASHofoperatorsinquads,GLOBALvar_set,Pilatypes,POper, CONSTANTSvar_set
+    if len(p) > 2 :
+        if PilaO and POper: # IF THE STACKS ARE NOT EMPTY AND WE HAVE A WORKING ARRAY
+            aux = PilaO.pop()
+            initaddr = fetinitialvirtualaddrvector(p[-1])
+            if not initaddr in CONSTANTSvar_set: # IF NEW CONSTANT,SAVE IT
+                CONSTANTSvar_set[initaddr] = getandsetVirtualAddrCTE(initaddr)
+            actualaddr = CONSTANTSvar_set[initaddr] # IF ALREADY USED, GIVE US THE VIRTUALADDRESS
+            pointer = getandsetVirtualAddrTemp('pointer')
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads['+'],aux,actualaddr,pointer)) # AS SEEN IN CLASS TO DEAL WITH ARRAYS
+            PilaO.append(pointer)
+            POper.pop() #DEAL WITH THE OPERATOR
 
 def p_NEURALINITARRAT(p):
     '''
     neuralinitarray : LEFTSQR
     '''
+    global POper,PilaO,PDim,Pilatypes
+    if PilaO:
+        id = PilaO.pop()
+        typeclearer = Pilatypes.pop()
+        name = p[-1] # GET THE TOKEN IDENTIFIER FOR THIS VECTOR
+        dimensionssensor(name)
+        DIM = 1 # IN THIS LANGUAAAGE, ONLY VECTORS PASS MY LIEGE
+        PDim.append((id,DIM))
+        POper.append("~~~") # OUR FAKE BOTTOM, AS SEEN IN CLASS
+
 
 
 def p_VERIFY(p):
     '''
     verify : 
     '''
+    global PilaO, QUADSlist, HASHofoperatorsinquads, CONSTANTSvar_set
+    value = PilaO[-1] # OUR LAST ELEMENT, TOP() INHERENT IN PYTHON 
+    id = p[-3] # GET THAT IDENTIFIER
+    limit = getdimlimits(id)
+    upperlimit = virtualaddrfetcher(limit) # GET OUR LIMITS GO GO GO
+    lowerlimit = virtualaddrfetcher(0)
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['VER'],value,lowerlimit,upperlimit)) # OUR NICE VER QUADRUPLE
 
 
 
@@ -585,9 +759,9 @@ def p_NEURALINSERTFUNCS(p): # INSERT WITH AUXILIAR FUNCTIONS
     CURRENTfunctionname = p[1] # GET THAT FUNCTION NAME (THE ID)
     p[0]= p[1] #SKIPPING
     CURRENTcontext = 'l'
-    newaddr = 0 #_____AUXILIAR FUNCTIONS OF VIRTUALADDRES
+    newaddr = getandsetVirtualAddrFunc() # GET THE NEW FUNCTION ADDRESS
     GLOBALvar_set[CURRENTfunctionname]={'virtualaddress': newaddr, 'type' : CURRENTtype} # SAVE THE FUNCTION NAME AS A GLOBAL VARIABLE AS SEEN IN CLASS
-    #_______AUXILIAR FUNCTION TO INSERT IN FUNCTION TABLE
+    insertinFunctable(CURRENTfunctionname,CURRENTtype,CURRENTcontext,LOCALvar_set) # SAVE THE DATA TO INSERT INTO THE FUNCTION TABLES
 
 
 def p_FUNCPARAM(p): #GRAMMAR LOGIC TO GET ALL PARAMETERS AND NEURALGIC POINTS RELATING TO FUNCTIONS MAINTENANCE
@@ -605,7 +779,7 @@ def p_NEURALENDFUNCS(p): # NEURALGIC POINT FOR ENDPROC QUADS AND RESETTING LOCAL
     id = CURRENTfunctionname
     TABLEof_functions[id]['Tempsnumber'] = TEMPORALScounter # SAVE THE TEMPORALS NUMBER
     QUADSlist.append(Quadruple(HASHofoperatorsinquads['ENDPROC'],-1,-1,-1)) #SAVE THE QUAD
-    #### AUXILIAR TO RESET THE LOCAL AND TEMPORAL VARIABLES
+    ENDANDRESETFunc()#### AUXILIAR TO RESET THE LOCAL AND TEMPORAL VARIABLES
 
 def p_NEURALFUNCSIZE(p): # THE NEURALGIC POINT THE HANDLES THE VARIABLE SIZES OF THE FUNCTION INVOLVED
     '''
@@ -653,6 +827,13 @@ def p_NEURALINSERTPARAM(p): # GET AND SAVE ALL THE PARAMETER DATA
     '''
     neuralinsertparam : ID
     '''
+    global CURRENTcontext,CURRENTtype, PARAMETERSTABLElist, PARAMETERSQUEUElist
+    CURRENTcontext = 'l'
+    virtualaddr = getandsetVirtualAddrVars(CURRENTtype,CURRENTcontext) # GET TEH ADDRESS
+    PARAMETERSQUEUElist.append(virtualaddr) # ADD TO THE LIST THE ADDRESS
+    insertinVartable(p[1],virtualaddr, CURRENTtype) # GET THE VALUE WE ARE LOOKING FOR AND ADD IT TO THE VARTABLE
+    PARAMETERSTABLElist.append(CURRENTtype)
+
 
 
 def p_MULPARAMS(p): # HANDLE TEH MULTIPLE PARAMETERS
@@ -753,8 +934,8 @@ def p_ASSIGN(p):
         result = PilaO.pop()
         righttype = Pilatypes.pop()
         leftop = PilaO.pop()
-        leftype = Pilatypes.pop()
-        #Auxiliar typechecker cubo semantico
+        lefttype = Pilatypes.pop()
+        typechecker(lefttype,righttype)#Auxiliar typechecker cubo semantico
         QUADSlist.append(Quadruple(HASHofoperatorsinquads['='],result,-1,leftop))
 
 def p_NEURALASSIGN(p):
@@ -763,9 +944,9 @@ def p_NEURALASSIGN(p):
     '''
     global PilaO,Pilatypes
     p[0]=p[1] #SKIPPING
-    virtualaddr = 0 #FUNCION AUXILIAR PARA EL VIRTUALADDRES p[1]
+    virtualaddr = virtualaddrfetcher(p[1]) # GET THE TOKEN WE ARE LOOKING FOR
     PilaO.append(virtualaddr)
-    Pilatypes.append('placeholder') # FUNCION AUXILIAR PARA AGREGAR TIPO DE VALOR
+    Pilatypes.append(getValtype(p[1])) # GET THE TYPE OF THE VALUE WE ARE LOOKING
 
 def p_NEURALASSIGN2(p):
     '''
@@ -779,6 +960,10 @@ def p_ASSIGNEXP(p):
     assignexp : exp
     '''
     p[0]=p[1] # SKIPPING TOKEN
+
+
+
+
 
 #### RETURN SPECIAL QUAD ####
 def p_RETURNING(p): # A STATIC GRAMMAR, ONLY THE EXP IS SPECIAL
@@ -1272,11 +1457,11 @@ def p_NEURALERA(p):
     '''
     neuralera : 
     '''
-    global QUADRUPLESlist,HASHOFOPERATORSINquads,THETABLEoffunctions,CONTPARAMETERSlist,STACKOFoperatorssymb
-    global PilaO, STACKOFtypes,PARAMETERSTABLElist,THEPARAMETERSset
-    STACKOFoperatorssymb.append("~~~")
+    global QUADSlist,HASHofoperatorsinquads,TABLEof_functions,POper,CONTPARAMETERSlist
+    global PilaO, Pilatypes ,PARAMETERSTABLElist,THEPARAMETERSset
+    POper.append("~~~")
     id =(p[-3]) #FUNCTION ID
-    QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['ERA'],-1,-1,id)) 
+    QUADSlist.append(Quadruple(HASHofoperatorsinquads['ERA'],-1,-1,id)) 
     CONTPARAMETERSlist.append(0)
 
 
@@ -1285,29 +1470,57 @@ def p_NEURALPAR2(p):
     neuralpar2 :
     '''
     global PARAMSINTcounter,PARAMSFLOATcounter,PARAMSCHARcounter,PARAMETERSTABLElist
-    global STACKOFoperands,STACKOFtypes,QUADRUPLESlist,HASHOFOPERATORSINquads, PARAMETERQUEUElist,CONTPARAMETERSlist
-    if STACKOFoperands and STACKOFtypes and PARAMETERSTABLElist:
-        argument = STACKOFoperands.pop()
-        argumentype = STACKOFtypes.pop()
+    global PilaO,Pilatypes,QUADSlist,HASHofoperatorsinquads, PARAMETERSQUEUElist,CONTPARAMETERSlist
+    if PilaO and Pilatypes and PARAMETERSTABLElist:
+        argument = PilaO.pop()
+        argumentype = Pilatypes.pop()
         paramaux =CONTPARAMETERSlist.pop()
         if argumentype!= PARAMETERSTABLElist[paramaux]:
             ERRORHANDLER("tiposdif")
         if argumentype == 'int':
             PARAMSINTcounter +=1
-            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         elif argumentype == 'float':
             PARAMSINTcounter +=1
-            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         elif argumentype == 'char':
             PARAMSINTcounter +=1
-            QUADRUPLESlist.append(Quadruple(HASHOFOPERATORSINquads['PARAM'],argument,-1,PARAMETERQUEUElist[paramaux]))
+            QUADSlist.append(Quadruple(HASHofoperatorsinquads['PARAM'],argument,-1,PARAMETERSQUEUElist[paramaux]))
         CONTPARAMETERSlist.append(paramaux+1)
     else:
         if len(PARAMETERSTABLElist)!= CONTPARAMETERSlist:
             ERRORHANDLER("functionwithparamhuh",p[-1])
+
 
 def p_MULPARAMSEXP(p): #HANDLING MULTIPLE PARAMETER DECLARATION
     '''
     mulparamsexp : COMMA exp neuralpar2 mulparamsexp
                 | empty
     '''
+
+
+####EXCEPTIONS HANDLING#####
+
+def p_empty(p):
+    '''
+    empty : 
+    '''     
+    pass  
+
+def p_error(p):
+    print ("Syntax Error in '%s'" % p.value)
+    print (p)
+    sys.exit()
+
+
+##ALTERNATIVE FILEHANDLER
+
+import ply.yacc as yacc
+parser = yacc.yacc()
+f = open("./"+arch , "r")
+input = f.read()
+parser.parse(input, debug=0)
+output = open("Quads.mir", "w")
+for x in QUADSlist:
+    output.write(str(x.QUADcounter)+ "~" + str(x.operator) + "~" + str(x.LeftOperand)+ "~" + str(x.RightOperand) + "~" + str(x.result) + "\n")
+output.close()
