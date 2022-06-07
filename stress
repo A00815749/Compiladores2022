@@ -8,10 +8,6 @@ function float extra(int: x, float: y);
 {
     return (x*y);
 }
-
-
-
-
 main(){
     i = 12;
     m = 10;

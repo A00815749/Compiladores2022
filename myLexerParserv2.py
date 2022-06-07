@@ -27,7 +27,6 @@ TABLEof_functions = {}
 GLOBALvar_set = {}
 LOCALvar_set = {}
 CONSTANTSvar_set = {}
-THEPARAMETERSset = {}
 
 
 #The Operation number that will be stored inside the quads product indicating which type of operation the quads is
@@ -151,7 +150,7 @@ def ENDANDRESETFunc(): #RESET EVERY LOCAL AND TEMPORAL VARIABLES, INCLUDING POIN
     global LOCALCHARcounter,LOCALFLOATcounter,LOCALINTcounter
     global TEMPINTcounter, TEMPFLOATcounter, TEMPCHARcounter, TEMPBOOLcounter, POINTERScounter
     global PARAMSINTcounter, PARAMSFLOATcounter, PARAMSCHARcounter, temporalsCounter
-    global CURRENTcontext, LOCALvar_set, LOCALnames, THEPARAMETERSset,PARAMETERSTABLElist
+    global CURRENTcontext, LOCALvar_set, LOCALnames,PARAMETERSTABLElist
     LOCALINTcounter = 7000 - 1
     LOCALFLOATcounter = 9000 - 1
     LOCALCHARcounter = 11000 - 1
@@ -1445,7 +1444,7 @@ def p_NEURALEXIST(p): # CHECK IF THE ID ACTUALLY EXISTS
     neuralexist : 
     '''
     existencesensor(p[-1])
-    #POper.append("~~~") # FAKE BOTTOM
+    #POper.append("~~~") # FAKE BOTTOM BREAKS FINEXP AND OTHER THINGS
     p[0] = p[-1]
 
 
@@ -1489,7 +1488,7 @@ def p_NEURALERA(p):
     neuralera : 
     '''
     global QUADSlist,HASHofoperatorsinquads,TABLEof_functions,POper,CONTPARAMETERSlist
-    global PilaO, Pilatypes ,PARAMETERSTABLElist,THEPARAMETERSset
+    global PilaO, Pilatypes ,PARAMETERSTABLElist
     POper.append("~~~")
     id =(p[-3]) #FUNCTION ID
     QUADSlist.append(Quadruple(HASHofoperatorsinquads['ERA'],-1,-1,id)) 
